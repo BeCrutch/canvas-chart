@@ -1,5 +1,6 @@
 import { getChartData } from './data';
-import { toDate, isOver, line, circle, computeBoundaries } from './utils'
+import { toDate, isOver, line, circle, computeBoundaries, css } from './utils'
+import {tooltip} from "./tooltip";
 
 const WIDTH = 600;
 const HEIGHT = 200;
@@ -12,13 +13,18 @@ const ROWS_COUNT = 5;
 const CIRCLE_RADIUS = 8;
 
 
-export function chart(canvas, data) {
+export function chart(root, data) {
+    const canvas = root.querySelector('canvas');
     const ctx = canvas.getContext('2d');
+    const tip = tooltip(root.querySelector('[data-el="tooltip"]'));
     let raf;
-    canvas.style.width = WIDTH + 'px';
-    canvas.style.height = HEIGHT + 'px';
+
     canvas.width = DPI_WIDTH;
     canvas.height = DPI_HEIGHT;
+    css(canvas, {
+        width: WIDTH + 'px',
+        height: HEIGHT + 'px'
+    });
 
     const proxy = new Proxy({}, {
         set(...args) {
@@ -35,6 +41,10 @@ export function chart(canvas, data) {
         const {left} = canvas.getBoundingClientRect()
         proxy.mouse = {
             x: (clientX - left) * 2,
+            tooltip: {
+                top: clientY - top,
+                left: clientX - left
+            }
         }
     }
 
@@ -92,19 +102,24 @@ export function chart(canvas, data) {
 
     function xAxis(xData, xRatio) {
         const colsCount = 6;
-        const step = Math.round(data.length / colsCount);
+        const step = Math.round(xData.length / colsCount);
         ctx.beginPath();
         for(let i = 1; i < xData.length; i++) {
             const x = i * xRatio;
             if ((i - 1) % step === 0) {
-                const text = toDate(data[i]);
+                const text = toDate(xData[i]);
                 ctx.fillText(text.toString(), x, DPI_HEIGHT - 10);
             }
             if (isOver(proxy.mouse, x, xData.length, DPI_WIDTH)) {
                 ctx.save();
                 ctx.moveTo(x, PADDING / 2);
                 ctx.lineTo(x, DPI_HEIGHT - PADDING);
-                ctx.restore()
+                ctx.restore();
+
+                tip.show(proxy.mouse.tooltip, {
+                    title: toDate(xData[i]),
+                    items: []
+                })
             }
         }
         ctx.stroke();

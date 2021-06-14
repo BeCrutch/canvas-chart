@@ -175,6 +175,7 @@ exports.isOver = isOver;
 exports.line = line;
 exports.circle = circle;
 exports.computeBoundaries = computeBoundaries;
+exports.css = css;
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
 
@@ -270,7 +271,57 @@ function computeBoundaries(_ref4) {
   });
   return [min, max];
 }
-},{}],"chart.js":[function(require,module,exports) {
+
+function css(el) {
+  var styles = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  Object.assign(el.style, styles);
+}
+},{}],"tooltip.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.tooltip = tooltip;
+
+var _utils = require("./utils");
+
+var template = function template(data) {
+  return "\n    <div class=\"tooltip-title\">".concat(data.title, "</div>\n        <ul class=\"tooltip-list\">\n            ").concat(data.items.map(function (item) {
+    return "<li class=\"tooltip-list-item\">\n                                <div class=\"value\" style=\"color: ".concat(item.color, "\">").concat(item.value, "</div>\n                                <div class=\"name\" style=\"color: ").concat(item.color, "\">").concat(item.name, "</div>\n                            </li>");
+  }).join('\n'), "\n        </ul>");
+};
+
+function tooltip(el) {
+  var clear = function clear() {
+    return el.innerHTML = '';
+  };
+
+  return {
+    show: function show(_ref, data) {
+      var left = _ref.left,
+          top = _ref.top;
+
+      var _el$getBoundingClient = el.getBoundingClientRect(),
+          height = _el$getBoundingClient.height,
+          width = _el$getBoundingClient.width;
+
+      clear();
+      (0, _utils.css)(el, {
+        display: 'block',
+        top: top - height + 'px',
+        left: left + width / 2 + 'px'
+      });
+      el.insertAdjacentHTML('afterbegin', template(data));
+    },
+    hide: function hide() {
+      (0, _utils.css)(el, {
+        display: 'none'
+      });
+    }
+  };
+}
+},{"./utils":"utils.js"}],"chart.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -281,6 +332,8 @@ exports.chart = chart;
 var _data = require("./data");
 
 var _utils = require("./utils");
+
+var _tooltip = require("./tooltip");
 
 function _createForOfIteratorHelper(o, allowArrayLike) { var it = typeof Symbol !== "undefined" && o[Symbol.iterator] || o["@@iterator"]; if (!it) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e2) { throw _e2; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = it.call(o); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e3) { didErr = true; err = _e3; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
 
@@ -306,13 +359,17 @@ var VIEW_WIDTH = DPI_WIDTH;
 var ROWS_COUNT = 5;
 var CIRCLE_RADIUS = 8;
 
-function chart(canvas, data) {
+function chart(root, data) {
+  var canvas = root.querySelector('canvas');
   var ctx = canvas.getContext('2d');
+  var tip = (0, _tooltip.tooltip)(root.querySelector('[data-el="tooltip"]'));
   var raf;
-  canvas.style.width = WIDTH + 'px';
-  canvas.style.height = HEIGHT + 'px';
   canvas.width = DPI_WIDTH;
   canvas.height = DPI_HEIGHT;
+  (0, _utils.css)(canvas, {
+    width: WIDTH + 'px',
+    height: HEIGHT + 'px'
+  });
   var proxy = new Proxy({}, {
     set: function set() {
       var result = Reflect.set.apply(Reflect, arguments);
@@ -331,7 +388,11 @@ function chart(canvas, data) {
         left = _canvas$getBoundingCl.left;
 
     proxy.mouse = {
-      x: (clientX - left) * 2
+      x: (clientX - left) * 2,
+      tooltip: {
+        top: clientY - top,
+        left: clientX - left
+      }
     };
   }
 
@@ -412,14 +473,14 @@ function chart(canvas, data) {
 
   function xAxis(xData, xRatio) {
     var colsCount = 6;
-    var step = Math.round(data.length / colsCount);
+    var step = Math.round(xData.length / colsCount);
     ctx.beginPath();
 
     for (var i = 1; i < xData.length; i++) {
       var x = i * xRatio;
 
       if ((i - 1) % step === 0) {
-        var text = (0, _utils.toDate)(data[i]);
+        var text = (0, _utils.toDate)(xData[i]);
         ctx.fillText(text.toString(), x, DPI_HEIGHT - 10);
       }
 
@@ -428,6 +489,10 @@ function chart(canvas, data) {
         ctx.moveTo(x, PADDING / 2);
         ctx.lineTo(x, DPI_HEIGHT - PADDING);
         ctx.restore();
+        tip.show(proxy.mouse.tooltip, {
+          title: (0, _utils.toDate)(xData[i]),
+          items: []
+        });
       }
     }
 
@@ -456,7 +521,7 @@ function toCoords(xRatio, yRatio) {
     });
   };
 }
-},{"./data":"data.js","./utils":"utils.js"}],"../node_modules/parcel-bundler/src/builtins/bundle-url.js":[function(require,module,exports) {
+},{"./data":"data.js","./utils":"utils.js","./tooltip":"tooltip.js"}],"../node_modules/parcel-bundler/src/builtins/bundle-url.js":[function(require,module,exports) {
 var bundleURL = null;
 
 function getBundleURLCached() {
@@ -567,7 +632,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "52174" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60491" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
