@@ -398,6 +398,7 @@ function chart(root, data) {
 
   function mouseleave() {
     proxy.mouse = 0;
+    tip.hide();
   }
 
   function clear() {
@@ -405,6 +406,7 @@ function chart(root, data) {
   }
 
   function paint() {
+    console.log('print');
     clear();
 
     var _computeBoundaries = (0, _utils.computeBoundaries)(data),
@@ -421,7 +423,7 @@ function chart(root, data) {
       return data.types[col[0]] !== 'line';
     })[0];
     yAxis(yMin, yMax);
-    xAxis(xData, xRatio);
+    xAxis(xData, yData, xRatio);
     yData.map(toCoords(xRatio, yRatio)).forEach(function (coords, idx) {
       var color = data.colors[yData[idx][0]];
       (0, _utils.line)(ctx, coords, {
@@ -471,12 +473,12 @@ function chart(root, data) {
     ctx.closePath();
   }
 
-  function xAxis(xData, xRatio) {
+  function xAxis(xData, yData, xRatio) {
     var colsCount = 6;
     var step = Math.round(xData.length / colsCount);
     ctx.beginPath();
 
-    for (var i = 1; i < xData.length; i++) {
+    var _loop = function _loop(i) {
       var x = i * xRatio;
 
       if ((i - 1) % step === 0) {
@@ -491,9 +493,19 @@ function chart(root, data) {
         ctx.restore();
         tip.show(proxy.mouse.tooltip, {
           title: (0, _utils.toDate)(xData[i]),
-          items: []
+          items: yData.map(function (col) {
+            return {
+              color: data.colors[col[0]],
+              name: data.names[col[0]],
+              value: col[i + 1]
+            };
+          })
         });
       }
+    };
+
+    for (var i = 1; i < xData.length; i++) {
+      _loop(i);
     }
 
     ctx.stroke();
@@ -632,7 +644,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60491" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "62300" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

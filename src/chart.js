@@ -38,7 +38,7 @@ export function chart(root, data) {
     canvas.addEventListener('mouseleave', mouseleave);
 
     function mousemove({clientX, clientY}) {
-        const {left} = canvas.getBoundingClientRect()
+        const {left} = canvas.getBoundingClientRect();
         proxy.mouse = {
             x: (clientX - left) * 2,
             tooltip: {
@@ -50,6 +50,7 @@ export function chart(root, data) {
 
     function mouseleave() {
         proxy.mouse = 0;
+        tip.hide();
     }
 
     function clear() {
@@ -57,6 +58,7 @@ export function chart(root, data) {
     }
 
     function paint() {
+        console.log('print');
         clear();
         const [yMin, yMax] = computeBoundaries(data);
         const yRatio = VIEW_HEIGHT / (yMax - yMin);
@@ -66,7 +68,7 @@ export function chart(root, data) {
         const xData = data.columns.filter( col => data.types[col[0]] !== 'line' )[0];
 
         yAxis(yMin, yMax);
-        xAxis(xData, xRatio);
+        xAxis(xData, yData, xRatio);
 
         yData.map(toCoords(xRatio, yRatio)).forEach( (coords, idx) => {
             const color = data.colors[yData[idx][0]];
@@ -100,7 +102,7 @@ export function chart(root, data) {
         ctx.closePath();
     }
 
-    function xAxis(xData, xRatio) {
+    function xAxis(xData, yData, xRatio) {
         const colsCount = 6;
         const step = Math.round(xData.length / colsCount);
         ctx.beginPath();
@@ -118,7 +120,11 @@ export function chart(root, data) {
 
                 tip.show(proxy.mouse.tooltip, {
                     title: toDate(xData[i]),
-                    items: []
+                    items: yData.map(col => ({
+                        color: data.colors[col[0]],
+                        name: data.names[col[0]],
+                        value: col[i + 1]
+                    }))
                 })
             }
         }
